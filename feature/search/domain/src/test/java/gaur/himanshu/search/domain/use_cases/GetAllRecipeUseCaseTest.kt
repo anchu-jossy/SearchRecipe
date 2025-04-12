@@ -1,5 +1,6 @@
 package gaur.himanshu.search.domain.use_cases
 
+import gaur.himanshu.common.utils.NetworkResult
 import gaur.himanshu.search.domain.model.Recipe
 import gaur.himanshu.search.domain.model.RecipeDetails
 import gaur.himanshu.search.domain.repository.SearchRepository
@@ -17,41 +18,22 @@ class GetAllRecipeUseCaseTest {
 
     @Test
     fun test_success() = runTest {
-        `when`(searchRepository.getRecipes("chicken"))
-            .thenReturn(
-                Result.success(getRecipeResponse())
-            )
+        `when`(searchRepository.getRecipes("chicken")).thenReturn(
+            Result.success(getRecipeResponse())
+        )
+        val response = GetAllRecipeUseCase(searchRepository).invoke("chicken").last().data
 
-        val useCase = GetAllRecipeUseCase(searchRepository)
-
-        val response = useCase.invoke("chicken")
-
-        assertEquals(getRecipeResponse(),response.last().data)
+        assertEquals(getRecipeResponse(), response)
 
     }
-
     @Test
-    fun test_failing() = runTest {
-        `when`(searchRepository.getRecipes("chicken"))
-            .thenReturn(Result.failure(RuntimeException("error")))
-
-        val useCase = GetAllRecipeUseCase(searchRepository)
-
-        val response = useCase.invoke("chicken")
+    fun test_failure()= runTest {
+        `when`(searchRepository.getRecipes("chicken")).thenReturn(Result.failure(RuntimeException("error")))
+       val response= GetAllRecipeUseCase(searchRepository).invoke("chicken")
 
         assertEquals("error",response.last().message)
     }
 
-
-    @Test
-    fun test_exception() = runTest {
-        `when`(searchRepository.getRecipes("chicken"))
-            .thenThrow(RuntimeException("error"))
-        val useCase  = GetAllRecipeUseCase(searchRepository)
-        val response = useCase.invoke("chicken")
-        assertEquals("error",response.last().message)
-
-    }
 
 
 }

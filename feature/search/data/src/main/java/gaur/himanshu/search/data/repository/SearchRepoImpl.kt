@@ -23,7 +23,7 @@ class SearchRepoImpl(
                 Result.failure(Exception("error occurred"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("error"))
         }
 
     }

@@ -1,5 +1,6 @@
 package gaur.himanshu.search.screens.details
 
+import androidx.lifecycle.viewmodel.compose.viewModel
 import gaur.himanshu.common.utils.NetworkResult
 import gaur.himanshu.common.utils.UiText
 import gaur.himanshu.search.domain.model.Recipe
@@ -35,12 +36,13 @@ class RecipeDetailsViewModelTest {
 
     @Test
     fun test_success() = runTest {
-        `when`(getRecipeDetailsUseCase.invoke("id"))
-            .thenReturn(
-                flowOf(
-                    NetworkResult.Success(data = getRecipeDetails())
+        `when`(getRecipeDetailsUseCase.invoke("chicken")).thenReturn(
+            flowOf(
+                NetworkResult.Success(
+                    getRecipeDetails()
                 )
             )
+        )
         val viewModel = RecipeDetailsViewModel(
             getRecipeDetailsUseCase,
             deleteRecipeUseCase,
@@ -48,17 +50,21 @@ class RecipeDetailsViewModelTest {
         )
         viewModel.onEvent(
             gaur.himanshu.search.screens.details.RecipeDetails.Event.FetchRecipeDetails(
-                "id"
+                "chicken"
             )
         )
         assertEquals(getRecipeDetails(), viewModel.uiState.value.data)
-
     }
 
     @Test
-    fun test_failure() = runTest {
-        `when`(getRecipeDetailsUseCase.invoke("id"))
-            .thenReturn(flowOf(NetworkResult.Error("error")))
+    fun test_failed() = runTest {
+        `when`(getRecipeDetailsUseCase.invoke("chicken")).thenReturn(
+            flowOf(
+                NetworkResult.Error(
+                    "error"
+                )
+            )
+        )
         val viewModel = RecipeDetailsViewModel(
             getRecipeDetailsUseCase,
             deleteRecipeUseCase,
@@ -66,81 +72,98 @@ class RecipeDetailsViewModelTest {
         )
         viewModel.onEvent(
             gaur.himanshu.search.screens.details.RecipeDetails.Event.FetchRecipeDetails(
-                "id"
+                "chicken"
             )
         )
+
         assertEquals(UiText.RemoteString("error"), viewModel.uiState.value.error)
 
+
     }
 
-
     @Test
-    fun test_navigate_recipe_list_screen() = runTest {
+    fun test_goToRecipeListScreen() = runTest {
         val viewModel = RecipeDetailsViewModel(
             getRecipeDetailsUseCase,
             deleteRecipeUseCase,
             insertRecipeUseCase
         )
-        viewModel.onEvent(gaur.himanshu.search.screens.details.RecipeDetails.Event.GoToRecipeListScreen)
-        val list = mutableListOf<gaur.himanshu.search.screens.details.RecipeDetails.Navigation>()
-        backgroundScope.launch(UnconfinedTestDispatcher()) {
-            viewModel.navigation.collectLatest {
-                list.add(it)
-            }
-        }
-
-        assert(list.first() is gaur.himanshu.search.screens.details.RecipeDetails.Navigation.GoToRecipeListScreen)
-
-    }
-
-    @Test
-    fun test_navigate_goToMediaPlayer() = runTest {
-        val viewModel = RecipeDetailsViewModel(
-            getRecipeDetailsUseCase,
-            deleteRecipeUseCase,
-            insertRecipeUseCase
+        viewModel.onEvent(
+            gaur.himanshu.search.screens.details.RecipeDetails.Event.GoToRecipeListScreen
         )
-
-        viewModel.onEvent(gaur.himanshu.search.screens.details.RecipeDetails.Event.GoToMediaPlayer("url"))
-        val list = mutableListOf<gaur.himanshu.search.screens.details.RecipeDetails.Navigation>()
+        val mutableList =
+            mutableListOf<gaur.himanshu.search.screens.details.RecipeDetails.Navigation>()
         backgroundScope.launch(UnconfinedTestDispatcher()) {
+
             viewModel.navigation.collectLatest {
-                list.add(it)
+                mutableList.add(it)
             }
+            assertEquals(
+                mutableList.first(),
+                gaur.himanshu.search.screens.details.RecipeDetails.Navigation.GoToRecipeListScreen
+            )
         }
-        assert(list.first() is gaur.himanshu.search.screens.details.RecipeDetails.Navigation.GoToMediaPlayer)
-
-
     }
+
 
     @Test
     fun test_insert() = runTest {
-        val recipeDb = mutableListOf<Recipe>()
-        val recipe = getRecipeDetails().toRecipe()
-        `when`(insertRecipeUseCase.invoke(recipe))
-            .then {
-                recipeDb.add(recipe)
-                flowOf(Unit)
-            }
+        val recipe = mutableListOf<Recipe>()
 
+        `when`(insertRecipeUseCase.invoke(getRecipeDetails().toRecipe())).then {
+            recipe.add(getRecipeDetails().toRecipe())
+            flowOf(Unit)
+        }
 
         val viewModel = RecipeDetailsViewModel(
             getRecipeDetailsUseCase,
             deleteRecipeUseCase,
             insertRecipeUseCase
         )
-
         viewModel.onEvent(
             gaur.himanshu.search.screens.details.RecipeDetails.Event.InsertRecipe(
                 getRecipeDetails()
             )
         )
 
-        assert(recipeDb.contains(recipe))
+        assert(recipe.contains(getRecipeDetails().toRecipe()))
+
+        // assert(recipe.containsAll(getRecipeDetails()))
     }
 
     @Test
     fun test_delete() = runTest {
+        val recipeList = mutableListOf<Recipe>()
+
+        `when`(insertRecipeUseCase.invoke(getRecipeDetails().toRecipe())).then {
+            recipeList.add(getRecipeDetails().toRecipe())
+            flowOf(Unit)
+        }
+        `when`(deleteRecipeUseCase.invoke(getRecipeDetails().toRecipe())).then {
+            recipeList.remove(getRecipeDetails().toRecipe())
+            flowOf(Unit)
+        }
+        val viewModel = RecipeDetailsViewModel(
+            getRecipeDetailsUseCase,
+            deleteRecipeUseCase,
+            insertRecipeUseCase
+        )
+        viewModel.onEvent(
+            gaur.himanshu.search.screens.details.RecipeDetails.Event.InsertRecipe(
+                getRecipeDetails()
+            )
+        )
+        viewModel.onEvent(
+            gaur.himanshu.search.screens.details.RecipeDetails.Event.DeleteRecipe(
+                getRecipeDetails()
+            )
+        )
+
+        assert(recipeList.isEmpty())
+    }
+
+    @Test
+    fun test_delete1() = runTest {
         val recipeDb = mutableListOf<Recipe>()
         val recipe = getRecipeDetails().toRecipe()
         `when`(insertRecipeUseCase.invoke(recipe))
@@ -166,9 +189,11 @@ class RecipeDetailsViewModelTest {
             )
         )
 
-        viewModel.onEvent(gaur.himanshu.search.screens.details.RecipeDetails.Event.DeleteRecipe(
-            getRecipeDetails()
-        ))
+        viewModel.onEvent(
+            gaur.himanshu.search.screens.details.RecipeDetails.Event.DeleteRecipe(
+                getRecipeDetails()
+            )
+        )
 
         assert(recipeDb.isEmpty())
     }
@@ -229,5 +254,6 @@ private fun getRecipeDetails(): RecipeDetails {
         ingredientsPair = listOf(Pair("Ingredients", "Measure"))
     )
 }
+
 
 

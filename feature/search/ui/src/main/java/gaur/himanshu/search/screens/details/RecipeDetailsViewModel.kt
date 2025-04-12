@@ -55,7 +55,7 @@ class RecipeDetailsViewModel @Inject constructor(
             }
 
             is gaur.himanshu.search.screens.details.RecipeDetails.Event.InsertRecipe -> {
-                insertRecipeUseCase.invoke(event.recipeDetails.toRecipe())
+              insertRecipeUseCase.invoke(event.recipeDetails.toRecipe())
                     .launchIn(viewModelScope)
             }
 
